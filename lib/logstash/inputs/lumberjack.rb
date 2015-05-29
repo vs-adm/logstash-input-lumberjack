@@ -64,7 +64,10 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         invoke(connection, codec) do |_codec, line, fields|
           _codec.decode(line) do |event|
             decorate(event)
-            fields.each { |k,v| event[k] = v; v.force_encoding(Encoding::UTF_8) }
+            fields.each do |k, v|
+              event[k] = v if event[k].nil?
+              v.force_encoding(Encoding::UTF_8)
+            end
             output_queue << event
           end
         end
