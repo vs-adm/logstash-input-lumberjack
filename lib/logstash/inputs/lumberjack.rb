@@ -31,8 +31,8 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   # The lumberjack input using a fixed thread pool to do the actual work and
   # will accept a number of client in a queue, before starting to refuse new
-  # connection. This solve an issue when logstash-forwarder clients are 
-  # trying to connect to logstash which have a blocked pipeline and will 
+  # connection. This solve an issue when logstash-forwarder clients are
+  # trying to connect to logstash which have a blocked pipeline and will
   # make logstash crash with an out of memory exception.
   config :max_clients, :validate => :number, :default => 1000
 
@@ -40,7 +40,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
 
   BUFFERED_QUEUE_SIZE = 20
   RECONNECT_BACKOFF_SLEEP = 0.5
-  
+
   def register
     require "lumberjack/server"
     require "concurrent/executors"
@@ -53,8 +53,8 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
       :ssl_key_passphrase => @ssl_key_passphrase)
 
     # Limit the number of thread that can be created by the
-    # Limit the number of thread that can be created by the 
-    # lumberjack output, if the queue is full the input will 
+    # Limit the number of thread that can be created by the
+    # lumberjack output, if the queue is full the input will
     # start rejecting new connection and raise an exception
     @threadpool = Concurrent::ThreadPoolExecutor.new(
       :min_threads => 1,
@@ -81,6 +81,7 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
         # Wrapping the accept call into a CircuitBreaker
         if @circuit_breaker.closed?
           connection = @lumberjack.accept # Blocking call that creates a new connection
+          next unless connection
 
           invoke(connection, codec.clone) do |_codec, line, fields|
             _codec.decode(line) do |event|
@@ -94,8 +95,8 @@ class LogStash::Inputs::Lumberjack < LogStash::Inputs::Base
           @logger.warn("Lumberjack input: the pipeline is blocked, temporary refusing new connection.")
           sleep(RECONNECT_BACKOFF_SLEEP)
         end
-        # When too many errors happen inside the circuit breaker it will throw 
-        # this exception and start refusing connection, we need to catch it but 
+        # When too many errors happen inside the circuit breaker it will throw
+        # this exception and start refusing connection, we need to catch it but
         # it's safe to ignore.
       rescue LogStash::CircuitBreaker::OpenBreaker => e
       end
